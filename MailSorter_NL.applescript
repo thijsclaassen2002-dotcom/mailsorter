@@ -1,5 +1,5 @@
 -- =====================================================
--- MailSorter — Nederlandse Editie v1.0
+-- MailSorter — Nederlandse Editie v1.1
 -- Automatische mailsortering voor Apple Mail op macOS
 -- github.com/thijsclaassen2002-dotcom/mailsorter
 -- =====================================================
@@ -25,8 +25,9 @@
 -- INSTELLEN:
 --   1. Pas de CONFIGURATIE hieronder aan op jouw situatie.
 --   2. Voeg je eigen bank, werkgever en dokter toe (zoek op "JOUW").
---   3. Open Script Editor → Run om te testen.
---   4. Installeer als launchd-agent (zie README.md) voor automatisch uitvoeren.
+--   3. Zet dryRun op true voor een eerste test — bekijk de output in Venster → Log.
+--   4. Open Script Editor → Run om te testen.
+--   5. Installeer als launchd-agent (zie README.md) voor automatisch uitvoeren.
 --
 -- REGELFORMAAT: {"@domein-fragment", vlagkleur, "Archive/Mapnaam"}
 --   • domein-fragment: deel van het e-mailadres, hoofdletterongevoelig.
@@ -76,6 +77,10 @@ set personalDomains to {¬
 	"@proton.me", "@yahoo.com", "@me.com", "@live.nl", "@live.com", ¬
 	"@ziggo.nl", "@kpnmail.nl", "@hetnet.nl", "@planet.nl", "@casema.nl" ¬
 }
+
+-- Droog-modus: zet op true om te testen zonder echt te verplaatsen.
+-- Elk besluit wordt gelogd naar Venster → Log in Script Editor.
+set dryRun to false
 
 -- ── AFZENDERREGELS ────────────────────────────────────────────────────────────
 -- Formaat: {"@domein-fragment", vlagkleur, "Archive/Doelmap"}
@@ -133,6 +138,10 @@ set senderRules to {¬
 	{"@action.com",                         0, "Archive/Nieuwsbrieven/Mode & Shopping"}, ¬
 	{"@decathlon.nl",                       0, "Archive/Nieuwsbrieven/Mode & Shopping"}, ¬
 	{"@ikea.com",                           0, "Archive/Nieuwsbrieven/Mode & Shopping"}, ¬
+	{"@marktplaats.nl",                     0, "Archive/Nieuwsbrieven/Mode & Shopping"}, ¬
+	{"@vinted.nl",                          0, "Archive/Nieuwsbrieven/Mode & Shopping"}, ¬
+	{"@vinted.com",                         0, "Archive/Nieuwsbrieven/Mode & Shopping"}, ¬
+	{"@2dehands.be",                        0, "Archive/Nieuwsbrieven/Mode & Shopping"}, ¬
 
 	-- ── Tech & AI ─────────────────────────────────────────────────
 	{"@github.com",                         0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬
@@ -152,9 +161,8 @@ set senderRules to {¬
 	{"@creators.suno.com",                  0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬
 	{"@news.edx.org",                       0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬
 	{"@formspree.io",                       0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬
-	{"@transip.nl",                         0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬ -- hosting
-	{"@hostnet.nl",                         0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬
-	{"@mijndomein.nl",                      0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬
+	{"@hostnet.nl",                         0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬ -- verify: kan ook facturen sturen
+	{"@mijndomein.nl",                      0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬ -- verify: kan ook facturen sturen
 	{"@cloudflare.com",                     0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬
 	{"@netlify.com",                        0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬
 	{"@digitalocean.com",                   0, "Archive/Nieuwsbrieven/Tech & AI"}, ¬
@@ -187,10 +195,7 @@ set senderRules to {¬
 	{"@marleyspoon.nl",                     0, "Archive/Nieuwsbrieven/Voeding & Sport"}, ¬
 	{"@update.strava.com",                  0, "Archive/Nieuwsbrieven/Voeding & Sport"}, ¬
 	{"@strava.com",                         0, "Archive/Nieuwsbrieven/Voeding & Sport"}, ¬
-	{"@mail.beehiiv.com",                   0, "Archive/Nieuwsbrieven/Voeding & Sport"}, ¬
-	{"@beehiiv.com",                        0, "Archive/Nieuwsbrieven/Voeding & Sport"}, ¬
 	{"@houseofsports.nl",                   0, "Archive/Nieuwsbrieven/Voeding & Sport"}, ¬
-	{"@decathlon.nl",                       0, "Archive/Nieuwsbrieven/Voeding & Sport"}, ¬
 
 	-- ── Transport ────────────────────────────────────────────────
 	{"@email.ns.nl",                        0, "Archive/Transport"}, ¬
@@ -215,7 +220,33 @@ set senderRules to {¬
 	{"@flixbus.com",                        0, "Archive/Transport"}, ¬
 	{"@thalys.com",                         0, "Archive/Transport"}, ¬
 
+	-- ── Telecom & Energie (auto-sort → Archive/Financieel) ───────
+	-- Automatische incasso: geen actie nodig, maar wel in Financieel bewaren.
+	{"@vodafone.nl",                        0, "Archive/Financieel"}, ¬
+	{"@odido.nl",                           0, "Archive/Financieel"}, ¬
+	{"@kpn.com",                            0, "Archive/Financieel"}, ¬
+	{"@ziggo.nl",                           0, "Archive/Financieel"}, ¬
+	{"@tele2.nl",                           0, "Archive/Financieel"}, ¬
+	{"@simpel.nl",                          0, "Archive/Financieel"}, ¬
+	{"@youfone.nl",                         0, "Archive/Financieel"}, ¬
+	{"@vattenfall.nl",                      0, "Archive/Financieel"}, ¬
+	{"@eneco.nl",                           0, "Archive/Financieel"}, ¬
+	{"@essent.nl",                          0, "Archive/Financieel"}, ¬
+	{"@greenchoice.nl",                     0, "Archive/Financieel"}, ¬
+	{"@oxxio.nl",                           0, "Archive/Financieel"}, ¬
+	{"@tibber.com",                         0, "Archive/Financieel"}, ¬
+
+	-- ── Uitzendbureau's (auto-sort → Archive/Nieuwsbrieven) ──────
+	-- Marketingmail: niet relevant als je niet actief zoekt naar werk.
+	-- Voeg je werkgever toe in de WERK-sectie hieronder.
+	{"@tempo-team.nl",                      0, "Archive/Nieuwsbrieven"}, ¬
+	{"@randstad.nl",                        0, "Archive/Nieuwsbrieven"}, ¬
+	{"@adecco.nl",                          0, "Archive/Nieuwsbrieven"}, ¬
+	{"@manpower.nl",                        0, "Archive/Nieuwsbrieven"}, ¬
+
 	-- ── Overige nieuwsbrieven ─────────────────────────────────────
+	{"@mail.beehiiv.com",                   0, "Archive/Nieuwsbrieven"}, ¬
+	{"@beehiiv.com",                        0, "Archive/Nieuwsbrieven"}, ¬
 	{"@vriendenloterij.nl",                 0, "Archive/Nieuwsbrieven"}, ¬
 	{"@postcodeloterij.nl",                 0, "Archive/Nieuwsbrieven"}, ¬
 	{"@opens.socialdeal.nl",                0, "Archive/Nieuwsbrieven"}, ¬
@@ -286,23 +317,6 @@ set senderRules to {¬
 	{"@ingoedehanden.nl",                   2, "Archive/Financieel"}, ¬
 	-- JOUW zorgverzekeraar toevoegen als die er niet bij staat
 
-	-- Telecom rekeningen
-	{"@vodafone.nl",                        2, "Archive/Financieel"}, ¬
-	{"@odido.nl",                           2, "Archive/Financieel"}, ¬
-	{"@kpn.com",                            2, "Archive/Financieel"}, ¬
-	{"@ziggo.nl",                           2, "Archive/Financieel"}, ¬
-	{"@tele2.nl",                           2, "Archive/Financieel"}, ¬
-	{"@simpel.nl",                          2, "Archive/Financieel"}, ¬
-	{"@youfone.nl",                         2, "Archive/Financieel"}, ¬
-
-	-- Energie rekeningen
-	{"@vattenfall.nl",                      2, "Archive/Financieel"}, ¬
-	{"@eneco.nl",                           2, "Archive/Financieel"}, ¬
-	{"@essent.nl",                          2, "Archive/Financieel"}, ¬
-	{"@greenchoice.nl",                     2, "Archive/Financieel"}, ¬
-	{"@oxxio.nl",                           2, "Archive/Financieel"}, ¬
-	{"@tibber.com",                         2, "Archive/Financieel"}, ¬
-
 	-- Incasso & deurwaarders
 	{"@flanderijn.nl",                      2, "Archive/Financieel"}, ¬
 	{"@intrum.nl",                          2, "Archive/Financieel"}, ¬
@@ -311,6 +325,7 @@ set senderRules to {¬
 	{"@infomedics.nl",                      2, "Archive/Financieel"}, ¬ -- medische facturen
 
 	-- ── 🟡 GEEL (3): Zakelijk / Juridisch ────────────────────────
+	{"@transip.nl",                         3, "Archive/Zakelijk"}, ¬ -- hosting: stuurt facturen
 	{"@kvk.nl",                             3, "Archive/Zakelijk"}, ¬
 	{"@docusign.net",                       3, "Archive/Zakelijk"}, ¬
 	{"@eumail.docusign.net",                3, "Archive/Zakelijk"}, ¬
@@ -326,14 +341,10 @@ set senderRules to {¬
 	-- {"@jouwadvocaat.nl", 3, "Archive/Zakelijk"},
 
 	-- ── 🟢 GROEN (4): Werk ───────────────────────────────────────
-	-- JOUW werkgever(s) hier toevoegen:
+	-- !! VOEG HIER JE EIGEN WERKGEVER(S) TOE — dit is de belangrijkste aanpassing !!
 	-- {"@jouwwerkgever.nl",                4, "Archive/Werk"},
 	-- {"@jouwklant.nl",                    4, "Archive/Werk"},
 	{"@info.werkspot.nl",                   4, "Archive/Werk"}, ¬ -- klantvragen via Werkspot
-	{"@tempo-team.nl",                      4, "Archive/Werk"}, ¬
-	{"@randstad.nl",                        4, "Archive/Werk"}, ¬
-	{"@adecco.nl",                          4, "Archive/Werk"}, ¬
-	{"@manpower.nl",                        4, "Archive/Werk"}, ¬
 
 	-- ── 🔵 BLAUW (5): Wonen ──────────────────────────────────────
 	{"@email.funda.nl",                     5, "Archive/Wonen/Woningzoektocht"}, ¬
@@ -380,18 +391,18 @@ set senderRules to {¬
 	{"@ciz.nl",                             6, "Archive/Overheid"}, ¬ -- WLZ indicatie
 	{"@rechtspraak.nl",                     6, "Archive/Overheid"}, ¬
 	{"@cbs.nl",                             6, "Archive/Overheid"}, ¬
-	-- Gemeentes: voeg jouw gemeente toe:
-	-- {"@amsterdam.nl",                    6, "Archive/Overheid"},
-	-- {"@rotterdam.nl",                    6, "Archive/Overheid"},
-	-- {"@denhaag.nl",                      6, "Archive/Overheid"},
-	-- {"@utrecht.nl",                      6, "Archive/Overheid"},
-	-- {"@nijmegen.nl",                     6, "Archive/Overheid"},
+	-- Grote steden: uncomment wat van toepassing is, of voeg je eigen gemeente toe:
+	{"@amsterdam.nl",                       6, "Archive/Overheid"}, ¬
+	{"@rotterdam.nl",                       6, "Archive/Overheid"}, ¬
+	{"@denhaag.nl",                         6, "Archive/Overheid"}, ¬
+	{"@utrecht.nl",                         6, "Archive/Overheid"}, ¬
 	{"@nijmegen.nl",                        6, "Archive/Overheid"}, ¬
 	{"@overbetuwe.nl",                      6, "Archive/Overheid"}, ¬
 	{"@dar.nl",                             6, "Archive/Overheid"}, ¬ -- afval
 	{"@rsc.ru.nl",                          6, "Archive/Overheid"} ¬
 
 }
+
 
 -- =====================================================
 -- ENGINE — niet aanpassen
@@ -420,7 +431,9 @@ tell application "Mail"
 		try
 			set x to mailbox (fn as string) of icloudAccount
 		on error
-			make new mailbox with properties {name:(fn as string)} at icloudAccount
+			if not dryRun then
+				make new mailbox with properties {name:(fn as string)} at icloudAccount
+			end if
 		end try
 	end repeat
 
@@ -458,20 +471,33 @@ tell application "Mail"
 
 			if matchedFlag is 0 then
 				-- Auto-sort: direct naar archive, geen vlag
-				move aMsg to mailbox matchedFolder of icloudAccount
+				if dryRun then
+					log "[DryRun L1] auto → " & matchedFolder & " | " & sndr
+				else
+					move aMsg to mailbox matchedFolder of icloudAccount
+				end if
 				set autoCount to autoCount + 1
 			else if matchedFlag > 0 then
 				-- Bekende afzender: kleurvlag, blijft in inbox
-				set flag index of aMsg to matchedFlag
+				if dryRun then
+					log "[DryRun L1] vlag=" & matchedFlag & " → " & matchedFolder & " | " & sndr
+				else
+					set flag index of aMsg to matchedFlag
+				end if
 				set flagCount to flagCount + 1
 			else
 				-- Onbekende afzender: rode vlag alleen bij actie nodig
 				if hasAttachment or isInvoice then
-					set flag index of aMsg to 1
+					if dryRun then
+						log "[DryRun L1] ROOD (onbekend+bijlage/factuur) | " & sndr & " | " & subj
+					else
+						set flag index of aMsg to 1
+					end if
 					set flagCount to flagCount + 1
 				end if
 			end if
-		on error
+		on error errMsg
+			if dryRun then log "[DryRun L1] fout: " & errMsg
 		end try
 	end repeat
 
@@ -503,14 +529,26 @@ tell application "Mail"
 				end if
 
 				if matchedFolder is not "" then
-					move aMsg to mailbox matchedFolder of icloudAccount
+					if dryRun then
+						log "[DryRun L2] → " & matchedFolder & " | " & sndr
+					else
+						move aMsg to mailbox matchedFolder of icloudAccount
+					end if
 					set archiveCount to archiveCount + 1
 				end if
-			on error
+			on error errMsg
+				if dryRun then log "[DryRun L2] fout: " & errMsg
 			end try
 		end repeat
 	on error
 	end try
+
+	-- Logging naar ~/Library/Logs/MailSorter.log
+	if not dryRun then
+		set logPath to (POSIX path of (path to home folder)) & "Library/Logs/MailSorter.log"
+		set logLine to (current date as string) & ": auto=" & autoCount & " vlag=" & flagCount & " archief=" & archiveCount
+		do shell script "echo " & quoted form of logLine & " >> " & quoted form of logPath
+	end if
 
 	-- Notificatie tonen als er iets gesorteerd is
 	if autoCount > 0 or archiveCount > 0 then
