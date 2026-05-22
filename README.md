@@ -1,109 +1,111 @@
-# MailSorter — Generic Edition
+# MailSorter
 
-An automatic Apple Mail organizer for macOS. Runs silently in the background every 5 minutes and keeps your inbox clean using rules you define yourself.
+**Automatic Apple Mail organizer for macOS.** Runs silently every 5 minutes, sorts your inbox by category, and routes archived mail to the right folder — all locally, free, no subscriptions.
+
+> Flag color = category, not urgency.
+
+---
+
+## What it looks like
+
+```
+Inbox
+ 🟠  Invoice from your bank           → stays, you handle it
+ 🟢  Message from your employer       → stays, you handle it
+ 🔴  Unknown sender + attachment      → stays, flagged red
+                                         (newsletters, LinkedIn, deliveries never show up here)
+
+Archive/
+ ├── Financieel/       🟠 bank, insurance, tax
+ ├── Zakelijk/         🟡 contracts, KVK, accountant
+ ├── Werk/             🟢 employer, clients
+ ├── Wonen/            🔵 housing, real estate
+ ├── Gezondheid/       🟣 doctors, health insurer
+ ├── Overheid/         🟣 municipality, DigiD, DUO
+ ├── Bezorging/           PostNL, DHL, UPS, Amazon
+ ├── LinkedIn/            all LinkedIn notifications
+ └── Nieuwsbrieven/       Zalando, Spotify, GitHub, etc.
+```
 
 ---
 
 ## How it works
 
-```
-Inbox message arrives
-        │
-        ▼
- Does it match a rule?
-        │
-   ┌────┴────┐
-  YES        NO
-   │          │
-flag = 0?   Has attachment
-   │        or invoice?
- Auto-        │
- archive    flag = 1 (red)
- to folder  stays in Inbox
-   │
-flag = 2–6?
- Color flag
- stays in Inbox
-        │
-        ▼
-  You press Archive
-        │
-        ▼
- Layer 2 routes mail
- to correct subfolder
- (flag stays on the mail)
-```
+**Layer 1 — Inbox** (every 5 minutes):
+- Known unimportant sender → moved directly to the right Archive subfolder, no flag
+- Known important sender → color flag assigned, stays in Inbox
+- Unknown sender with attachment or invoice keyword → red flag, stays in Inbox
 
-**Flag colors = categories**, not urgency:
+**Layer 2 — Archive root** (same run):
+- Anything you manually pressed Archive on gets routed to the correct subfolder
+- The flag stays on the mail forever — you always know the category
 
-| Color | # | Meaning |
-|-------|---|---------|
-| 🔴 Red | 1 | Action required — unknown sender with attachment or invoice |
-| 🟠 Orange | 2 | Financial |
-| 🟡 Yellow | 3 | Business / Legal |
-| 🟢 Green | 4 | Work |
-| 🔵 Blue | 5 | Housing / Real Estate |
+**Flag colors = categories:**
+
+| Flag | # | Category |
+|------|---|----------|
+| 🔴 Red | 1 | Action required — unknown sender with attachment/invoice |
+| 🟠 Orange | 2 | Financial — bank, insurance, tax |
+| 🟡 Yellow | 3 | Business / Legal — contracts, accountant |
+| 🟢 Green | 4 | Work — employer, clients |
+| 🔵 Blue | 5 | Housing / Real estate |
 | 🟣 Purple | 6 | Health & Government |
-| — | 0 | Auto-sorted (newsletters, deliveries) — no flag, no attention needed |
+| — | 0 | Auto-sorted — no flag, no attention needed |
 
 ---
 
-## Setup
+## Files in this repo
 
-### Step 1 — Customize the rules
+| File | What it does |
+|------|-------------|
+| `MailSorter.applescript` | Main script — generic template, fill in your own rules |
+| `MailSorter_NL.applescript` | **Dutch edition** — 130+ Dutch senders pre-configured |
+| `MailSorter_OneTime.applescript` | One-time inbox cleanup (run once on first setup) |
+| `MailFlagFixer.applescript` | Fixes flag colors on existing archived mail |
+| `GENERATE_MY_MAILSORTER.md` | Prompt for any LLM (Claude, ChatGPT, Gemini) to generate your personal script |
+| `README.md` | This file |
 
-Open `MailSorter.applescript` in **Script Editor** (Applications → Utilities → Script Editor).
+---
 
-Edit the **CONFIGURATION** section at the top:
+## Quick start
 
-1. **`archiveFolders`** — the folder tree you want under Archive.
-2. **`invoiceKeywords`** — subject-line words that trigger the red flag for unknown senders.
-3. **`personalDomains`** — email domains of friends/family that go to Archive/Personal.
-4. **`senderRules`** — your actual sorting rules (see format below).
+### Option A — Use the Dutch edition (recommended for NL users)
 
-#### Rule format
+Open `MailSorter_NL.applescript` in **Script Editor**. It already has 130+ Dutch senders configured. Add your own bank, employer, and doctor — search for `JOUW` to find the placeholders.
 
-```applescript
-{"@domain-fragment.com", flag_color, "Archive/FolderName"}
-```
+### Option B — Generate your own with an LLM
 
-Examples:
-```applescript
--- Auto-sort to archive immediately (no flag):
-{"@linkedin.com",   0, "Archive/LinkedIn"},
+Open `GENERATE_MY_MAILSORTER.md`, copy the prompt between the `--- START PROMPT ---` and `--- END PROMPT ---` markers, paste it into Claude, ChatGPT, or Gemini, and answer the questions. You'll get a complete, personalized script back in minutes.
 
--- Orange flag, stays in Inbox, routes to Financial when archived:
-{"@mybank.com",     2, "Archive/Financial"},
+### Option C — Start from the generic template
 
--- Yellow flag for business/legal:
-{"@docusign.net",   3, "Archive/Business"},
-```
+Open `MailSorter.applescript` and fill in the CONFIGURATION section manually.
 
-**Tips:**
-- Rules are checked top-to-bottom. First match wins.
-- Use `@domain.com` format for reliable matching (case-insensitive).
-- You can match subdomains: `@mail.mybank.com` matches before `@mybank.com`.
-- A fragment like `@mybank` matches any subdomain of mybank.
+---
 
-### Step 2 — Test it
+## Installation
 
-1. Open Script Editor and open `MailSorter.applescript`.
-2. Click **Run** (▶).
-3. Check your inbox and Archive folders.
+### Step 1 — Test first
 
-### Step 3 — Install for automatic running
+Set `dryRun to true` in the CONFIGURATION section, open the script in **Script Editor**, and press **Run**. Open **Venster → Log** to see every decision the script would make — without moving anything.
 
-Create a launchd agent so the script runs every 5 minutes automatically.
+Once it looks right, set `dryRun to false`.
 
-**a) Copy the script to your Scripts folder:**
+### Step 2 — Run once to clean up the current inbox
+
+Open and run `MailSorter_OneTime.applescript`. This processes everything currently in your Inbox.
+
+### Step 3 — Install for automatic running every 5 minutes
+
+**a) Copy the script:**
 
 ```bash
-cp MailSorter.applescript ~/Library/Scripts/MailSorter.applescript
+cp MailSorter_NL.applescript ~/Library/Scripts/MailSorter.applescript
 ```
 
-**b) Create the launchd plist:**
+**b) Create the launchd agent:**
 
-Save the file below as `~/Library/LaunchAgents/com.mailsorter.plist`:
+Save this as `~/Library/LaunchAgents/com.mailsorter.plist` (replace `YOUR_USERNAME`):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -122,15 +124,9 @@ Save the file below as `~/Library/LaunchAgents/com.mailsorter.plist`:
     <integer>300</integer>
     <key>RunAtLoad</key>
     <true/>
-    <key>StandardOutPath</key>
-    <string>/Users/YOUR_USERNAME/Library/Logs/MailSorter.log</string>
-    <key>StandardErrorPath</key>
-    <string>/Users/YOUR_USERNAME/Library/Logs/MailSorter.log</string>
 </dict>
 </plist>
 ```
-
-Replace `YOUR_USERNAME` with your macOS username.
 
 **c) Load it:**
 
@@ -144,56 +140,66 @@ launchctl load ~/Library/LaunchAgents/com.mailsorter.plist
 launchctl list | grep mailsorter
 ```
 
-You should see `com.mailsorter` in the list.
+### Step 4 — Fix flags on existing archived mail (optional)
+
+Run `MailFlagFixer.applescript` once to correct flag colors on mail you archived before installing MailSorter.
 
 ---
 
-## One-time tools (run once, then you're done)
+## Logs
 
-### MailFlagFixer.applescript
+After each live run, the script appends a line to `~/Library/Logs/MailSorter.log`:
 
-Corrects flag colors on all your already-archived mail based on folder name.
-Run once after customizing your rules to clean up historical mail.
-
-### MailSorter_OneTime.applescript
-
-Processes all messages currently in your Inbox at once.
-Useful for the initial cleanup when you first set this up.
+```
+Thu 22 May 2026 09:00:01: auto=14 vlag=3 archief=2
+```
 
 ---
 
-## Adding new rules
+## Adding a new sender
 
-When you start getting mail from a new sender:
-
-1. Open `MailSorter.applescript` in Script Editor.
-2. Find the right section (auto-sort, financial, work, etc.).
-3. Add a line:
+1. Find their email domain (e.g. `@newservice.nl`)
+2. Open `MailSorter.applescript` in Script Editor
+3. Add one line in the right section:
    ```applescript
-   {"@newsender.com", flag_color, "Archive/TargetFolder"},
+   {"@newservice.nl", 0, "Archive/Nieuwsbrieven"},
    ```
-4. Save and run once to apply immediately. The launchd agent picks up changes automatically next run.
+4. Save — the launchd agent picks it up on the next run
+
+---
+
+## Rule format
+
+```applescript
+{"@domain-fragment", flag_color, "Archive/FolderName"}
+```
+
+- Checked top-to-bottom. **First match wins.**
+- `@` prefix is required. Matching is case-insensitive.
+- Specific subdomains first: `@mail.mybank.com` before `@mybank.com`
+- Flag `0` = auto-sort (move immediately, no flag)
+- Flag `1–6` = color flag, stays in Inbox
 
 ---
 
 ## Privacy
 
-This script runs **100% locally on your Mac**. No mail content, sender information, or metadata ever leaves your machine. The script only reads `From:` header and `Subject:` line — it never reads email bodies.
+Runs **100% locally on your Mac**. No mail content ever leaves your machine. The script only reads the `From:` header and `Subject:` line — never the body.
 
 ---
 
 ## Requirements
 
 - macOS 12 or later
-- Apple Mail app (configured with at least one account)
-- iCloud Mail recommended (syncs Archive folders to iPhone automatically)
+- Apple Mail (configured with at least one account)
+- iCloud Mail recommended — Archive folders sync to iPhone automatically
 
 ---
 
-## Personalize it with Claude
+## License
 
-Not sure which rules to add? Drop your email headers into a conversation with Claude and ask:
+MIT — do whatever you want with it.
 
-> "I want to set up MailSorter for my inbox. Here are some senders I receive mail from: [paste sender list]. Help me write the senderRules configuration."
+---
 
-See `CLAUDE_PROMPT.md` for a full prompt template.
+*Built with AppleScript and [Claude](https://claude.ai). Dutch edition includes 130+ pre-configured senders.*
